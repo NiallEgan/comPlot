@@ -1,0 +1,8 @@
+20.09.15:
+  - Add constants and coefficients to arg and mode eqns
+  - Add a mod / mod class
+  - Add a metod for arg - arg
+  - Add checking
+  - Add simple maps
+  - Add interpration
+  - Complete graphing front end
