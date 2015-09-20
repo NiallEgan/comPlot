@@ -1,11 +1,14 @@
 import 'dart:math';
 import 'dart:collection';
 
-class LinearExpression { // coef * z + con
+class LinearExpression { // coef * sub + con
   ComplexNumber coef;
   ComplexNumber con;
-  LinearExpression(this.coef, this.con); 
+  var sub;
+  LinearExpression(this.coef, this.con, this.sub);
 }
+
+class Z {}
 
 class QuotientExpression { // numerator / denominator
   LinearExpression numerator;
@@ -14,17 +17,18 @@ class QuotientExpression { // numerator / denominator
                    this.Denominator);
 }
 
-class AbsExpression { // |eqn| 
+class AbsExpression { // |eqn|
     var eqn;
     AbsExpression(var eqn) {
-      if(eqn is LinearExpression) {
+      if(eqn is LinearExpression || eqn is QuotientExpression) {
         this.eqn = eqn;
       } else if(eqn is ComplexNumber) {
         this.eqn = new LinearExpression(0, eqn)
-      }
+      } 
+    }
 }
 
-class ArgExpression { // arg(coef)
+class ArgExpression { // arg(eqn)
     var eqn;
     ArgExpression(var eqn) {
       if(eqn is LinearExpression) {
@@ -72,14 +76,22 @@ class Plus extends Operator {Plus(): super(0, 1, '+', 2,
       (x, y) {
         if(x is ComplexNumber && y is ComplexNumber) {
           return x + y;
-        } else if(x is ComplexNumber && y is LinearEquation) {
-          return new LinearEquation(y.coef, x + y.con);
-        } else if(x is LinearEquation && y is ComplexNumber) {
-          return new LinearEquation(x.coef, y + x.con);
-        } else if( x is LinearEquation && y is LinearEquation) {
-          return new LinearEquation(x.coef + y.coef, x.con + y.con);
+        } else if(x is ComplexNumber && y is LinearExpression) {
+          return new LinearExpression(y.coef, x + y.con, y.sub);
+        } else if(x is LinearExpression && y is ComplexNumber) {
+          return new LinearExpression(x.coef, y + x.con, x.sub);
+        } else if(x is LinearExpression && y is LinearEquation && 
+                  x.sub is Z && y.sub is Z) {
+          return new LinearExpression(x.coef + y.coef, x.con + y.con, 
+                                    x.sub);
+        } else if((x is AbsExpression || x is ArgExpression) 
+                   && y is ComplexNumber) {
+          return new LinearExpression(1, y, x);
+        } else if(x is ComplexNumber && 
+                 (y is AbsExpression || y is ArgExpression)) {
+          return new LinearExpression(1, x, y); 
         } else {
-          print("Error: Incorrect operand types");
+          print("Error:Plus Incorrect operand types");
           return null;
         }});}
 
@@ -87,14 +99,24 @@ class Minus extends Operator {Minus(): super(0, 1, '-', 2,
         (x, y) {
         if(x is ComplexNumber && y is ComplexNumber) {
           return x - y;
-        } else if(x is LinearEquation && y is ComplexNumber) {
-          return new LinearEquation(x.coef, x.con - y);
-        } else if(x is ComplexNumber && y is LinearEquation) {
-          return new LinearEquation(-y.coef, x - y.con);
-        } else if(x is LinearEquation && y is LinearEquation) {
-          return new LinearEquation(x.coef - y.coef, x.con - y.con);
+        } else if(x is LinearExpression && y is ComplexNumber) {
+          return new LinearExpression(x.coef, x.con - y, x.sub);
+        } else if(x is ComplexNumber && y is LinearExpression) {
+          return new LinearExpression(-y.coef, x - y.con, y.sub);
+        } else if(x is LinearExpression && y is LinearEquation &&
+                  x.sub is Z && y.sub is Z) {
+          return new LinearExpression(x.coef - y.coef, x.con - y.con, 
+                     x.sub);
+        } else if((x is ArgExpression || x is AbsExpression) && y is
+                  ComplexNumber) {
+          return new LinearExpression(1, -y, x);
+        } else if(x is ComplexNumber && (y is ArgExpression || 
+                  y is AbsExpression)) {
+          return new LinearExpression(-1, x, y); 
+        } else if(x is ArgExpression && y is ArgEquation) {
+          return new ArgExpression(new QuotientExpression(x, y));
         } else {
-          print("Error: Incorrect operand types");
+          print("Error:Minus Incorrect operand types");
           return null;
         }});}
 
@@ -102,14 +124,18 @@ class Divide extends Operator {Divide(): super(1, 1, '/', 2,
       (x, y) {
         if(x is ComplexNumber && y is ComplexNumber) {
           return x / y;
-        } else if(x is LinearEquation && y is ComplexNumber) {
-          return new LinearEquation(x.coef / y, x.con / y);
-        } else if(x is ComplexNumber && y is LinearEquation) {
-          return new QuotientEquation(new LinearEquation(0, x), y);
-        } else if(x is LinearEquation && y is LinearEquation) {
-          return new QuotientEquation(x, y);
+        } else if(x is LinearExpression && y is ComplexNumber) {
+          return new LinearExpression(x.coef / y, x.con / y, x.sub);
+        } else if(x is ComplexNumber && y is LinearExpression) {
+          return new 
+          QuotientExpression(new LinearExpression(0, x, y.sub), y);
+        } else if(x is LinearExpression && y is LinearExpression) {
+          return new QuotientExpression(x, y);
+        } else if((x is ArgExpression || x is AbsExpression) && y is
+                  ComplexNumber) {
+          return new LinearExpression(1 / y, 0, x);
         } else {
-          print("Error: Incorrect operand types");
+          print("Error: Divide Incorrect operand types");
           return null;
         }});}
 
@@ -117,21 +143,27 @@ class Multiply extends Operator {Multiply(): super(1, 1, '*', 2,
       (x, y) {
         if(x is ComplexNumber && y is ComplexNumber) {
           return x * y;
-        } else if(x is LinearEquation && y is ComplexNUmber) {
-          return new LinearEquation(x.coef * y, x.con * y);
-        } else if(x is ComplexNumber && y is LinearEquation) {
-          return new LinearEquation(y.coef * x, y.con * x);
-        } else if(x is LinearEquation && y is LinearEquation) {
+        } else if(x is LinearExpression && y is ComplexNumber) {
+          return new LinearExpression(x.coef * y, x.con * y, x.sub);
+        } else if(x is ComplexNumber && y is LinearExpression) {
+          return new LinearExpression(y.coef * x, y.con * x, y.sub);
+        } else if((x is ArgExpression || x is AbsExpression) && y is 
+                   ComplexNumber) {
+          return new LinearExpression(y, 0, x);
+        } else if((y is ArgExpression || y is AbsExpression) && x is
+                  ComplexNumber) {
+          return new LinearExpression(x, 0, y);
+        } else if(x is LinearExpression && y is LinearExpression) {
           print("Error: Polynomials are not supported");
         } else {
-          print("Error: Incorrect operand types");
+          print("Error:Times Incorrect operand types");
           return null;
         }});}
 
 class Arg extends Operator {Arg(): super(2, 1, 'arg', 1, 
-      (eqn) => new ArgExpression(eqn));}
+      (eqn) => new ArgExpression(eqn, 1, 0));}
 class Abs extends Operator {Abs(): super(2, 1, 'abs', 1,
-      (eqn) => new AbsExpressionn(eqn));}
+      (eqn) => new AbsExpression(eqn, 1, 0));}
 class LParen extends Operator {LParen(): super(-1, 1, '(', 0, 0);}
 
 String printOutput(Queue out) {
@@ -202,7 +234,7 @@ List <Queue> parse(String eqn) {
       else if(isPowOfTen(n) > 0) numLen = isPowOfTen(n) + 1;
       else numLen = (log(n) / log(10)).ceil();
       if(i + numLen < eqn.length && eqn[i + numLen] == 'z') {
-        output.addLast(new LinearExpression(n, 0));
+        output.addLast(new LinearExpression(n, 0, new Z()));
         i += numLen;
       } else if(i + numLen < eqn.length && eqn[i + numLen] == 'i') {
         output.addLast(new ComplexNumber(0, n));
@@ -254,7 +286,7 @@ List <Queue> parse(String eqn) {
       }
       lparenfound = false;
     } else if(token == 'z') {
-      output.addLast(new LinearExpression(1, 0));
+      output.addLast(new LinearExpression(1, 0, new Z()));
     } else if(token == '=') {
       if(side == 0) {
         while(operators.isNotEmpty) {
@@ -291,19 +323,22 @@ List <Queue> parse(String eqn) {
     } 
     output.addLast(op);
   }
-  if(side != 1) print("Error: No equation to plot");
+  if(side != 1) {
+    print("Error: No equation to plot");
+    return [output];
+  }
   return [lhs, output];
 }
 
-String graph(Queue lhs, Queue rhs) {
+ComplexNumber graph(Queue lhs) {
   // Build the syntax tree
-  Queue buildSide(Queue eqn) {
+   buildSide(Queue eqn) {
     Queue operands = new Queue();
     while(eqn.isNotEmpty) {
       var token = eqn.removeFirst();
-      if(token is ComplexNumber || token is LinearEquation || 
-         token is QuotientEquation || token is ArgExpression ||
-         token is ModEquation) {
+      if(token is ComplexNumber || token is LinearExpression || 
+         token is QuotientExpression || token is ArgExpression ||
+         token is AbsExpression) {
         operands.addFirst(token);
       } else { // Token is an operator
         if(operands.length < token.operands) {
@@ -318,17 +353,24 @@ String graph(Queue lhs, Queue rhs) {
         }
       }
     }
-    // Can't check for errors until we see whats on the other side
-    return operands;
+    if(operands.length != 1) {
+      print("Error: Incorrect number of operands");
+      return null;
+    }
+    return operands.removeFirst();
   }
   lhs = buildSide(lhs);
-  rhs = buildSide(rhs);
+  return lhs;
+  //rhs = buildSide(rhs);
 
   // Transform to graphable form
 }
 
 main() {
-  parse('3 + 4');
+  print(graph(parse('(5 + 3i) / (1 - i)')[0]).re); 
+  print("+" + 
+        graph(parse('(5 + 3i) / (1 - i)')[0]).im.toString() + "i" );
+
   parse('23+5');
   parse('3 - 4 + 5');
   parse('5 + ((1 + 2) * 4) - 3');
