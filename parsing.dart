@@ -5,7 +5,23 @@ class LinearExpression { // coef * sub + con
   ComplexNumber coef;
   ComplexNumber con;
   var sub;
-  LinearExpression(this.coef, this.con, this.sub);
+  LinearExpression(var coef, var con, var sub) {
+    if(coef is int || coef is double) {
+      this.coef = new ComplexNumber(coef, 0);
+    } else if(coef is ComplexNumber) {
+      this.coef = coef;
+    } else {
+      print('Error: Coef must be a compelx number or int');
+    }
+    if(con is int || con is double) {
+      this.con = new ComplexNumber(con, 0);
+    } else if(con is ComplexNumber) {
+      this.con = con;
+    } else {
+      print('Error: Con must be a complex number of int');
+    }
+    this.sub = sub;
+  }
 }
 
 class Z {}
@@ -13,30 +29,18 @@ class Z {}
 class QuotientExpression { // numerator / denominator
   LinearExpression numerator;
   LinearExpression denominator;
-  LinearExpression(this.numerator, 
-                   this.Denominator);
+  QuotientExpression(this.numerator, 
+                   this.denominator);
 }
 
 class AbsExpression { // |eqn|
     var eqn;
-    AbsExpression(var eqn) {
-      if(eqn is LinearExpression || eqn is QuotientExpression) {
-        this.eqn = eqn;
-      } else if(eqn is ComplexNumber) {
-        this.eqn = new LinearExpression(0, eqn)
-      } 
-    }
+    AbsExpression(this.eqn);
 }
 
 class ArgExpression { // arg(eqn)
     var eqn;
-    ArgExpression(var eqn) {
-      if(eqn is LinearExpression) {
-        this.eqn = eqn;
-      } else if(eqn is ComplexNumber) {
-        this.eqn = new LinearExpression(0, eqn);
-      }
-    }
+    ArgExpression(this.eqn);
 }
 
 
@@ -46,7 +50,12 @@ class ComplexNumber { // re + im * i
   ComplexNumber(this.re, this.im);
 
   ComplexNumber operator +(x) {
+    if(!(x is ComplexNumber)) {
+      return new ComplexNumber(re + x, im); // Not sure where this is 
+      // coming from - find
+    }
     return new ComplexNumber(re + x.re, im + x.im);
+   
   }
   ComplexNumber operator -(x) {
     return new ComplexNumber(re - x.re, im - x.im);
@@ -80,7 +89,7 @@ class Plus extends Operator {Plus(): super(0, 1, '+', 2,
           return new LinearExpression(y.coef, x + y.con, y.sub);
         } else if(x is LinearExpression && y is ComplexNumber) {
           return new LinearExpression(x.coef, y + x.con, x.sub);
-        } else if(x is LinearExpression && y is LinearEquation && 
+        } else if(x is LinearExpression && y is LinearExpression && 
                   x.sub is Z && y.sub is Z) {
           return new LinearExpression(x.coef + y.coef, x.con + y.con, 
                                     x.sub);
@@ -102,7 +111,8 @@ class Minus extends Operator {Minus(): super(0, 1, '-', 2,
         } else if(x is LinearExpression && y is ComplexNumber) {
           return new LinearExpression(x.coef, x.con - y, x.sub);
         } else if(x is ComplexNumber && y is LinearExpression) {
-          return new LinearExpression(-y.coef, x - y.con, y.sub);
+          return new LinearExpression(new ComplexNumber(0, 0) -y.coef, 
+                                      x - y.con, y.sub);
         } else if(x is LinearExpression && y is LinearEquation &&
                   x.sub is Z && y.sub is Z) {
           return new LinearExpression(x.coef - y.coef, x.con - y.con, 
@@ -133,7 +143,8 @@ class Divide extends Operator {Divide(): super(1, 1, '/', 2,
           return new QuotientExpression(x, y);
         } else if((x is ArgExpression || x is AbsExpression) && y is
                   ComplexNumber) {
-          return new LinearExpression(1 / y, 0, x);
+          return new LinearExpression(new ComplexNumber(1, 0) / y, 
+                                      0, x);
         } else {
           print("Error: Divide Incorrect operand types");
           return null;
@@ -161,9 +172,9 @@ class Multiply extends Operator {Multiply(): super(1, 1, '*', 2,
         }});}
 
 class Arg extends Operator {Arg(): super(2, 1, 'arg', 1, 
-      (eqn) => new ArgExpression(eqn, 1, 0));}
+      (eqn) => new ArgExpression(eqn));}
 class Abs extends Operator {Abs(): super(2, 1, 'abs', 1,
-      (eqn) => new AbsExpression(eqn, 1, 0));}
+      (eqn) => new AbsExpression(eqn));}
 class LParen extends Operator {LParen(): super(-1, 1, '(', 0, 0);}
 
 String printOutput(Queue out) {
@@ -241,7 +252,7 @@ List <Queue> parse(String eqn) {
         i += numLen;
       } else if(i + numLen + 1 < eqn.length && eqn.substring(i, i+1) ==
                 'pi') {
-          output.addLast(n * 3.14159265);
+          output.addLast(new ComplexNumber(n * 3.14159265, 0));
           i += numLen + 1;
       } else {
         output.addLast(new ComplexNumber(n, 0));
@@ -306,7 +317,7 @@ List <Queue> parse(String eqn) {
         return;
       }
     } else if(i + 1 < eqn.length && token == 'p'&& eqn[i+1] == 'i') {
-      output.addLast(3.14159625);
+      output.addLast(new ComplexNumber(3.14159625, 0));
       i++;
     } else if(token == 'i') {
       output.addLast(new ComplexNumber(0, 1));
@@ -330,7 +341,12 @@ List <Queue> parse(String eqn) {
   return [lhs, output];
 }
 
-ComplexNumber graph(Queue lhs) {
+bool compareComplex(ComplexNumber x, ComplexNumber y) 
+     => x.im == y.im && x.re == y.re;
+
+graph(List <Queue> s) {
+  Queue lhs = s[0];
+  Queue rhs = s[1];
   // Build the syntax tree
    buildSide(Queue eqn) {
     Queue operands = new Queue();
@@ -349,7 +365,8 @@ ComplexNumber graph(Queue lhs) {
           operands.addFirst(token.eval(operands.removeFirst()));
         } else if(token.operands == 2) {
           var firstOp = operands.removeFirst(); // Ensure correct order
-          operands.addFirst(token.eval(firstOp,operands.removeFirst()));
+          operands.addFirst(token.eval
+                   (operands.removeFirst(), firstOp));
         }
       }
     }
@@ -359,26 +376,166 @@ ComplexNumber graph(Queue lhs) {
     }
     return operands.removeFirst();
   }
-  lhs = buildSide(lhs);
-  return lhs;
-  //rhs = buildSide(rhs);
+  plotModModCircle(LinearExpression f1, LinearExpression f2) {
+    if(f1.coef.re * f2.coef.re <= 0) {
+      print("Error: Mismathcing mod coefficients");
+    } else if(compareComplex(f1.con, f2.con)) {
+      print("Error: Mismatching constants");
+    }
+    AbsEquation abs1 = f1.sub;
+    AbsEquation abs2 = f2.sub;
+    double lambda = f2.coef.re / f1.coef.re;
+    double lsq = lambda * lambda;
+    double a = abs1.eqn.con.re;
+    double b = abs1.eqn.con.im;
+    double u = abs2.eqn.con.re;
+    double v = abs2.eqn.con.re;
+    
+    double x = -pow((a - u * lsq) / (1 - lsq), 2);
+    double y = -pow((b - v * lsq) / (1 - lsq), 2);
+    double r = (-(a * a) - (b * b) - (lsq * lsq) * (u * u + v * v) + a 
+                + b) / (1 - lsq);
+    print("Circle centre ($x, $y) radius $r");
+  }
 
+  plotHalfLine(var f, ComplexNumber theta) {
+    if(theta.im != 0) {
+      print("Error: can't have an imaginary angle");
+    }
+    if(f is LinearExpression) {
+      theta -= LinearExpression.con;
+      theta /= LinearExpression.coef;
+      f = f.sub.eqn;
+    } else {
+      f = f.eqn;
+    }
+    if(!(f.sub is Z)) {
+      print("Error: Non-linear in z");
+    }
+    double m = tan(theta.re);
+    double x = -f.con.re;
+    double y = -f.con.im;
+    print('Half line starting at ($x, $y) with gradient $m');
+  }
+
+
+  plotLine(AbsExpression mod1, AbsExpression mod2) {
+    LinearExpression f1 = mod1.eqn;
+    LinearExpression f2 = mod2.eqn;
+    if(f1.coef.re != 1 && f2.coef.re != 1 && f1.coef.im != 0 &&
+       f2.coef.im != 0) {
+      print("Error: Incorrect z coefficient");
+      return;
+    }
+    if(!(f1.sub is Z) && !(f2.sub is Z)) {
+      print("Error: mod not linear in z");
+      return;
+    }
+    if(f1.con.im == f2.con.im) {
+      print(
+      "Vertical line x-intercept ${0.5 * (-f1.con.re - f2.con.re)}");
+      return;
+    }
+    double u = f1.con.re;
+    double v = f1.con.im;
+    double a = f2.con.re;
+    double b = f2.con.im;
+    double m = (u - a) / (b - v);
+    double c = 0.5 * ((u * u + v * v - a * a - b * b) / (b - v));
+    print("Line gradient $m, y-intercept $c, x-intercept ${-c/m}");
+  }
+
+  plotCircle(var expr, ComplexNumber r) {
+    LinearExpression f;
+    if(expr is LinearExpression) {
+      f = expr.sub.eqn;
+      r -= expr.con;
+      r /= expr.coef; 
+    } else {
+      f = expr.eqn;
+    }
+    if(r.im != 0) {
+      print("Error: can't have an imaginary radius");
+      return;
+    } else if(r.re <= 0) {
+      print("Error: non-positive radius");
+      return;
+    }
+    if(!(f is LinearExpression) && !(f.sub is Z)) {
+      print("Error: non-linear in z when plotting circle");
+      return;
+    }
+    if((f.coef.re != 1  || f.coef.re != -1) && f.coef.im != 0) {
+      print("Error: non-unity coefficient on z");
+    }
+    else print("Circle centre (${-f.coef.re * f.con.re}, ${-f.coef.re * f.con.im}) radius : ${r.re}");
+  } 
+  plotArc(ArgExpression x, ComplexNumber theta) {
+    if(!(x.eqn.denominator.sub is Z) || !(x.eqn.numerator.sub is Z)) {
+      print("Error: Quotient not linear in Z");
+      return;
+    }
+    if(theta.im != 0) {
+      print("Error: can't have an imaginary anglle");
+    }
+    LinearExpression n = x.eqn.denominator;
+    LinearExpression d = x.eqn.numerator;
+    print("Arc from (${-d.con.re}, ${-d.con.im}) to (${-n.con.re}. ${-n.con.im}) subtending an angle of ${theta.re} radians");
+
+  }
+  lhs = buildSide(lhs);
+  rhs = buildSide(rhs);
+  List sides = [lhs, rhs];
   // Transform to graphable form
+  // Form of f(|g(z|) = x, x e Re
+  for(int i = 0; i < 2; i++) {
+    if(((sides[i] is LinearExpression && sides[i].sub is AbsExpression) 
+       || (sides[i] is AbsExpression)) && 
+       sides[1 - i] is ComplexNumber) {
+        plotCircle(sides[i], sides[1- i]);
+        return;
+    // Form of |f(z)| = |g(z)|
+    } else if(sides[i] is AbsExpression && 
+              sides[1 - i] is AbsExpression) {
+          plotLine(sides[i], sides[1 - i]);
+          return;
+    // Form of k|f(z)| = t|g(z)|
+    } else if(sides[i] is LinearExpression && 
+              sides[i].sub is AbsExpression && 
+              sides[1 - i] is LinearExpression &&
+              sides[1 - i].sub is AbsExpression) {
+          plotModModCircle(sides[i], sides[1 - i]);
+          return;
+    } else if(sides[i] is AbsExpression && sides[1 - i] is 
+              LinearExpression && sides[1 - i].sub is 
+              AbsExpression) {
+            plotModModCircle(new LinearExpression(1, 0, sides[i]), 
+                             sides[1 - i]);
+            return;
+    // Form of n * arg(f(z)) + c = k
+    } else if(((sides[i] is LinearExpression && sides[i].sub is
+              ArgExpression && sides[i].sub.eqn is LinearExpression)
+              || (sides[i] is ArgExpression && sides[i].eqn is 
+                  LinearExpression)) && sides[1-i] is ComplexNumber) {
+          plotHalfLine(sides[i], sides[1 - i]);
+          return;
+    // Form of arg(f(z) / g(z)) = k
+    } else if(sides[i] is ArgExpression && 
+              sides[i].eqn is QuotientExpression && 
+              sides[1 - i] is ComplexNumber) {
+          plotArc(sides[i], sides[1 - i]);
+          return;
+    } else {
+      print("Error: I don't know how to plot that");
+    }
+  }
+}
+
+void printComplex(ComplexNumber x) {
+  print("${x.re} + ${x.im}i");
 }
 
 main() {
-  print(graph(parse('(5 + 3i) / (1 - i)')[0]).re); 
-  print("+" + 
-        graph(parse('(5 + 3i) / (1 - i)')[0]).im.toString() + "i" );
-
-  parse('23+5');
-  parse('3 - 4 + 5');
-  parse('5 + ((1 + 2) * 4) - 3');
-  parse('arg(5) / 3 +10');
-  parse('100 *(6 - abs(3 / 10))');
-  parse('(4z + 5z) * 3');
-  print(printOutput(parse('3 + 4 = 7')[0]));
-  print(printOutput(parse('arg((5z + 3) / (2 - z)) = 10')[0]));
-  print(printOutput(parse('arg((5z - 3i) / (2z + 1)) = pi / 4')[0]));
-}
+  graph(parse("arg((z - 4i) / (z+4)) = pi / 2"));
+} 
 
