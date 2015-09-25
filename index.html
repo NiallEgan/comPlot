@@ -1,0 +1,47 @@
+<head> 
+  <title> comPlot </title>
+  <link href="http://fonts.googleapis.com/css?family=Goudy+Bookletter+1911" rel="stylesheet" type="text/css">
+  <link href="http://fonts.googleapis.com/css?family=Raleway:100" rel="stylesheet" type="text/css">
+  <style>
+    body {
+      background-color : #222;
+    } 
+    h1 {
+      color : #F5F4F2;
+      font-family: 'Raleway', Helvetica, Arial, sans-serif;
+      font-size: 50px;
+      line-height: 70px;
+      text-align : center;
+    }
+    .bodyText {
+      text-align : center;
+      color : #F5F4F2;
+      font-family: 'Goudy Bookletter 1911', Georgia, Times, serif;
+      font-size: 17px;
+      line-height: 28px;
+    }
+    #containter {
+      display : flex;
+      flex-direction : column;
+      align-items: stretch;
+    } </style>
+
+</head>
+<body>
+<div id='container'>
+  <span id='header'>
+    <h1> comPlot </h1>
+    <h1 style='font-size: 30px;'> The complex loci plotter. </h1>
+  </span>
+  <span id='body'>
+    <canvas id='mainCan' width=100% height=80%> </canvas>
+    <form class='bodyText'>
+      Equation
+      <input type='text' id='eqn'></input>
+      <button type='button' id='go'>Plot!</button>
+    </form>
+    <span id='interp'> </span>
+    <span id='help' class='bodyText'><p>Enter arg(x) for the argument, and mod(x) for the modulus.</p></span>
+  </span>
+</div>
+</body>

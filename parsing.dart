@@ -51,8 +51,7 @@ class ComplexNumber { // re + im * i
 
   ComplexNumber operator +(x) {
     if(!(x is ComplexNumber)) {
-      return new ComplexNumber(re + x, im); // Not sure where this is 
-      // coming from - find
+      return new ComplexNumber(re + x, im);
     }
     return new ComplexNumber(re + x.re, im + x.im);
    
@@ -287,10 +286,6 @@ List <Queue> parse(String eqn) {
         }
         Operator op = operators.removeLast();
         if(op is LParen) {
-          /*if(operators.isNotEmpty && 
-            (operators.first is Arg || operators.first is Abs)) {
-            output.addLast(operators.removeFirst());
-          }*/
           lparenfound = true;
         }
       if(!lparenfound) output.addLast(op);
@@ -376,7 +371,7 @@ graph(List <Queue> s) {
     }
     return operands.removeFirst();
   }
-  plotModModCircle(LinearExpression f1, LinearExpression f2) {
+  makeModModCircle(LinearExpression f1, LinearExpression f2) {
     if(f1.coef.re * f2.coef.re <= 0) {
       print("Error: Mismathcing mod coefficients");
     } else if(compareComplex(f1.con, f2.con)) {
@@ -398,7 +393,7 @@ graph(List <Queue> s) {
     print("Circle centre ($x, $y) radius $r");
   }
 
-  plotHalfLine(var f, ComplexNumber theta) {
+  makeHalfLine(var f, ComplexNumber theta) {
     if(theta.im != 0) {
       print("Error: can't have an imaginary angle");
     }
@@ -419,7 +414,7 @@ graph(List <Queue> s) {
   }
 
 
-  plotLine(AbsExpression mod1, AbsExpression mod2) {
+  makeLine(AbsExpression mod1, AbsExpression mod2) {
     LinearExpression f1 = mod1.eqn;
     LinearExpression f2 = mod2.eqn;
     if(f1.coef.re != 1 && f2.coef.re != 1 && f1.coef.im != 0 &&
@@ -445,7 +440,7 @@ graph(List <Queue> s) {
     print("Line gradient $m, y-intercept $c, x-intercept ${-c/m}");
   }
 
-  plotCircle(var expr, ComplexNumber r) {
+  makeCircle(var expr, ComplexNumber r) {
     LinearExpression f;
     if(expr is LinearExpression) {
       f = expr.sub.eqn;
@@ -470,13 +465,13 @@ graph(List <Queue> s) {
     }
     else print("Circle centre (${-f.coef.re * f.con.re}, ${-f.coef.re * f.con.im}) radius : ${r.re}");
   } 
-  plotArc(ArgExpression x, ComplexNumber theta) {
+  makeArc(ArgExpression x, ComplexNumber theta) {
     if(!(x.eqn.denominator.sub is Z) || !(x.eqn.numerator.sub is Z)) {
       print("Error: Quotient not linear in Z");
       return;
     }
     if(theta.im != 0) {
-      print("Error: can't have an imaginary anglle");
+      print("Error: can't have an imaginary angle");
     }
     LinearExpression n = x.eqn.denominator;
     LinearExpression d = x.eqn.numerator;
@@ -492,24 +487,24 @@ graph(List <Queue> s) {
     if(((sides[i] is LinearExpression && sides[i].sub is AbsExpression) 
        || (sides[i] is AbsExpression)) && 
        sides[1 - i] is ComplexNumber) {
-        plotCircle(sides[i], sides[1- i]);
+        makeCircle(sides[i], sides[1- i]);
         return;
     // Form of |f(z)| = |g(z)|
     } else if(sides[i] is AbsExpression && 
               sides[1 - i] is AbsExpression) {
-          plotLine(sides[i], sides[1 - i]);
+          makeLine(sides[i], sides[1 - i]);
           return;
     // Form of k|f(z)| = t|g(z)|
     } else if(sides[i] is LinearExpression && 
               sides[i].sub is AbsExpression && 
               sides[1 - i] is LinearExpression &&
               sides[1 - i].sub is AbsExpression) {
-          plotModModCircle(sides[i], sides[1 - i]);
+          makeModModCircle(sides[i], sides[1 - i]);
           return;
     } else if(sides[i] is AbsExpression && sides[1 - i] is 
               LinearExpression && sides[1 - i].sub is 
               AbsExpression) {
-            plotModModCircle(new LinearExpression(1, 0, sides[i]), 
+            makeModModCircle(new LinearExpression(1, 0, sides[i]), 
                              sides[1 - i]);
             return;
     // Form of n * arg(f(z)) + c = k
@@ -517,13 +512,13 @@ graph(List <Queue> s) {
               ArgExpression && sides[i].sub.eqn is LinearExpression)
               || (sides[i] is ArgExpression && sides[i].eqn is 
                   LinearExpression)) && sides[1-i] is ComplexNumber) {
-          plotHalfLine(sides[i], sides[1 - i]);
+          makeHalfLine(sides[i], sides[1 - i]);
           return;
     // Form of arg(f(z) / g(z)) = k
     } else if(sides[i] is ArgExpression && 
               sides[i].eqn is QuotientExpression && 
               sides[1 - i] is ComplexNumber) {
-          plotArc(sides[i], sides[1 - i]);
+          makeArc(sides[i], sides[1 - i]);
           return;
     } else {
       print("Error: I don't know how to plot that");
