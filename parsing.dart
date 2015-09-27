@@ -11,7 +11,7 @@ class LinearExpression { // coef * sub + con
     } else if(coef is ComplexNumber) {
       this.coef = coef;
     } else {
-      print('Error: Coef must be a compelx number or int');
+      print('Error: Coef must be a complex number or int');
     }
     if(con is int || con is double) {
       this.con = new ComplexNumber(con, 0);
@@ -68,7 +68,7 @@ class ComplexNumber { // re + im * i
   ComplexNumber operator *(x) {
     return new ComplexNumber(re * x.re - im * x.im,
                              re * x.im + im * x.re);
-  }
+  } 
 }
 
 class Operator {
@@ -122,8 +122,9 @@ class Minus extends Operator {Minus(): super(0, 1, '-', 2,
         } else if(x is ComplexNumber && (y is ArgExpression || 
                   y is AbsExpression)) {
           return new LinearExpression(-1, x, y); 
-        } else if(x is ArgExpression && y is ArgEquation) {
-          return new ArgExpression(new QuotientExpression(x, y));
+        } else if(x is ArgExpression && y is ArgExpression) {
+          return new ArgExpression(new 
+          QuotientExpression(x.eqn, y.eqn));
         } else {
           print("Error:Minus Incorrect operand types");
           return null;
@@ -144,6 +145,8 @@ class Divide extends Operator {Divide(): super(1, 1, '/', 2,
                   ComplexNumber) {
           return new LinearExpression(new ComplexNumber(1, 0) / y, 
                                       0, x);
+        } else if(x is AbsExpression && y is AbsExpression) {
+          return new QuotientExpression(x, y);
         } else {
           print("Error: Divide Incorrect operand types");
           return null;
@@ -251,7 +254,7 @@ List <Queue> parse(String eqn) {
         i += numLen;
       } else if(i + numLen + 1 < eqn.length && eqn.substring(i, i+1) ==
                 'pi') {
-          output.addLast(new ComplexNumber(n * 3.14159265, 0));
+          output.addLast(new ComplexNumber(n * PI, 0));
           i += numLen + 1;
       } else {
         output.addLast(new ComplexNumber(n, 0));
@@ -312,7 +315,7 @@ List <Queue> parse(String eqn) {
         return;
       }
     } else if(i + 1 < eqn.length && token == 'p'&& eqn[i+1] == 'i') {
-      output.addLast(new ComplexNumber(3.14159625, 0));
+      output.addLast(new ComplexNumber(PI, 0));
       i++;
     } else if(token == 'i') {
       output.addLast(new ComplexNumber(0, 1));
@@ -381,15 +384,16 @@ graph(List <Queue> s) {
     AbsEquation abs2 = f2.sub;
     double lambda = f2.coef.re / f1.coef.re;
     double lsq = lambda * lambda;
+    double k = 1 / (lsq - 1);
     double a = abs1.eqn.con.re;
     double b = abs1.eqn.con.im;
     double u = abs2.eqn.con.re;
     double v = abs2.eqn.con.re;
     
-    double x = -pow((a - u * lsq) / (1 - lsq), 2);
-    double y = -pow((b - v * lsq) / (1 - lsq), 2);
-    double r = (-(a * a) - (b * b) - (lsq * lsq) * (u * u + v * v) + a 
-                + b) / (1 - lsq);
+    double x = -k * (u - a * lsq);
+    double y = -k * (v - b * lsq);
+    double r = sqrt(k * (u * u + v * v - lsq * a * a - lsq * b * b) +
+                    k * k * (pow(a*lsq - u, 2) + pow(b * lsq - v, 2)));
     print("Circle centre ($x, $y) radius $r");
   }
 
@@ -407,7 +411,12 @@ graph(List <Queue> s) {
     if(!(f.sub is Z)) {
       print("Error: Non-linear in z");
     }
-    double m = tan(theta.re);
+    double m;
+    if(theta.re != PI / 2 && theta.re != -PI / 2) {
+      m = tan(theta.re);
+    } else {
+      m = 1 / 0;
+    }
     double x = -f.con.re;
     double y = -f.con.im;
     print('Half line starting at ($x, $y) with gradient $m');
@@ -417,18 +426,26 @@ graph(List <Queue> s) {
   makeLine(AbsExpression mod1, AbsExpression mod2) {
     LinearExpression f1 = mod1.eqn;
     LinearExpression f2 = mod2.eqn;
-    if(f1.coef.re != 1 && f2.coef.re != 1 && f1.coef.im != 0 &&
-       f2.coef.im != 0) {
+    if(f1.coef.im != 0 && f2.coef.im != 0) {
       print("Error: Incorrect z coefficient");
       return;
     }
+    if(f1.coef.re == -1) {
+      f1.con = new ComplexNumber(0, 0) - f1.con;
+      f1.coef = new ComplexNumber(0, 0) - f1.coef;
+    }
+    if(f2.coef.re == -1) {
+      f2.con = new ComplexNumber(0, 0) - f2.con;
+      f2.coef = new ComplexNumber(0, 0) - f2.coef;
+    }
+
     if(!(f1.sub is Z) && !(f2.sub is Z)) {
       print("Error: mod not linear in z");
       return;
     }
     if(f1.con.im == f2.con.im) {
       print(
-      "Vertical line x-intercept ${0.5 * (-f1.con.re - f2.con.re)}");
+        "Vertical line x-intercept ${0.5 * (-f1.con.re - f2.con.re)}");
       return;
     }
     double u = f1.con.re;
@@ -437,7 +454,11 @@ graph(List <Queue> s) {
     double b = f2.con.im;
     double m = (u - a) / (b - v);
     double c = 0.5 * ((u * u + v * v - a * a - b * b) / (b - v));
-    print("Line gradient $m, y-intercept $c, x-intercept ${-c/m}");
+    if(m == 0) {
+      print('Horizontal line y-intercept $c');
+    } else {
+      print("Line gradient $m, y-intercept $c, x-intercept ${-c/m}");
+    }
   }
 
   makeCircle(var expr, ComplexNumber r) {
@@ -460,10 +481,7 @@ graph(List <Queue> s) {
       print("Error: non-linear in z when plotting circle");
       return;
     }
-    if((f.coef.re != 1  || f.coef.re != -1) && f.coef.im != 0) {
-      print("Error: non-unity coefficient on z");
-    }
-    else print("Circle centre (${-f.coef.re * f.con.re}, ${-f.coef.re * f.con.im}) radius : ${r.re}");
+    else print("Circle centre (${-f.con.re / f.coef.re}, ${-f.con.im / f.coef.re}) radius : ${(r.re / f.coef.re).abs()}");
   } 
   makeArc(ArgExpression x, ComplexNumber theta) {
     if(!(x.eqn.denominator.sub is Z) || !(x.eqn.numerator.sub is Z)) {
@@ -475,7 +493,7 @@ graph(List <Queue> s) {
     }
     LinearExpression n = x.eqn.denominator;
     LinearExpression d = x.eqn.numerator;
-    print("Arc from (${-d.con.re}, ${-d.con.im}) to (${-n.con.re}. ${-n.con.im}) subtending an angle of ${theta.re} radians");
+    print("Arc from (${-d.con.re}, ${-d.con.im}) to (${-n.con.re}, ${-n.con.im}) subtending an angle of ${theta.re} radians");
 
   }
   lhs = buildSide(lhs);
@@ -520,6 +538,18 @@ graph(List <Queue> s) {
               sides[1 - i] is ComplexNumber) {
           makeArc(sides[i], sides[1 - i]);
           return;
+    // Form of |f(z)| / |g(z)| = 1
+    } else if(sides[i] is QuotientExpression && sides[i].numerator is 
+              AbsExpression && sides[i].denominator is AbsExpression
+              && sides[1 - i] is ComplexNumber) {
+      if(sides[1 - i].re == 1 && sides[1 - i].im == 0) {
+        makeLine(sides[i].numerator, sides[i].denominator);
+      } else if(sides[1 - i].im == 0) {
+        makeModModCircle(sides[i].numerator, 
+                         new LinearExpression(sides[1 - i], 0, 
+                         sides[i].denominator));
+      } 
+      return;
     } else {
       print("Error: I don't know how to plot that");
     }
@@ -531,6 +561,56 @@ void printComplex(ComplexNumber x) {
 }
 
 main() {
-  graph(parse("arg((z - 4i) / (z+4)) = pi / 2"));
+  e(s) => graph(parse(s));
+  e('arg(z / (z + 3)) = pi / 4');
+  e('arg((z - 3i) / (z + 4)) = pi / 6');
+  e('arg(z / (z - 2)) = pi / 3');
+  e('arg((z - 3i) / (z - 5)) = pi / 4');
+  e('arg(z) - arg(z - 2 + 3i) = pi / 3');
+  e('arg((z -4i) / (z + 4)) = pi / 2'); 
+  /*
+  e('abs(z+3) = 3 * abs(z - 5)');
+  e('abs(z - 3) = 4 * abs(z+1)');
+  e('abs(z-i) = 2 * abs(z + i)');
+  e('abs(z+2+7i) = 2*abs(z-10+2i)');
+  e('abs(z+4-2i) = 2*abs(z-2-5i)');
+  e('abs(z) = 2 * abs(2 - z)');*/
+/*  e('abs(2 - z) = 3');
+  e('abs(5i - z) = 4');
+  e('abs(3 - 2i - z) = 3'); */
+/*  print('a'); e('abs(z -6) = abs(z - 2)');
+  print('b'); e('abs(z + 8) = abs(z - 4)');
+  print('c'); e('abs(z) = abs(z + 6i)');
+  print('d'); e('abs(z+3i) = abs(z - 8i)');
+  print('e'); e('abs(z - 2 -2i) = abs(z + 2 + 2i)');
+  print('f'); e('abs(z + 4 + i) = abs(z + 4 + 6i)');
+  print('g'); e('abs(z + 3 -5i) = abs(z -7 - 5i)');
+  print('h'); e('abs(z + 4 - 2i) = abs(z - 8 + 2i)');
+  print('i'); e('abs(z + 3i) / abs(z -6i) = 1');
+  print('j'); e('abs(z + 6 - i) / abs(z - 10 - 5i) = 1');
+  print('k'); e('abs(z + 7 + 2i) = abs(z - 4 - 3i)'); 
+  print('l'); e('abs(z + 1 - 6i) = abs(2 + 3i -z)'); */
+
+/*  e('arg(z) = pi / 3');
+  e('arg(z + 3) = pi / 4');
+  e('arg(z - 2) = pi / 2');
+  e('arg(z + 2 + 2i) = 0 -pi / 4');
+  e('arg(z - 1 - i) = 3 * pi / 4');
+  e('arg(z + 3i) = pi');
+  e('arg(z - 1 + 3i) = 2 * pi / 3');
+  e('arg(z - 3 +4i) = 0-pi / 2');
+  e('arg(z - 4i) = 0 -3 * pi / 4');*/
+/*  e('abs(z) = 6');
+  e('abs(z) = 10');
+  e('abs(z - 3) = 2');
+  e('abs(z + 3i) = 3');
+  e('abs(z - 4i) = 5');
+  e('abs(z + 1) = 1');
+  e('abs(z - 1 - i) = 5');
+  e('abs(z + 3 + 4i) = 4');
+  e('abs(z - 5 +  6i) = 5');
+  e('abs(2z + 6 - 4i) = 6');
+  e('abs(3z - 9 - 6i) = 12');
+  e('abs(3z - 9 - 6i) = 9');*/
 } 
 
