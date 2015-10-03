@@ -1,4 +1,4 @@
-import 'dart:html';
+//import 'dart:html';
 import 'dart:math';
 
 double xRange;
@@ -44,7 +44,7 @@ void plotLine(double m, double c){
       to[1] = yRange;
     }
   }
-   con..moveTo(from[0], from[1]
+   con..moveTo(from[0], from[1])
       ..lineTo(to[0], to[1])
       ..stroke()
       ..closePath();
@@ -92,12 +92,51 @@ void plotHalfLine(double x, double y, double m, double c, bool dircn) {
      ..closePath();
 }
 
-/*void plotArc(List <double> from, List <double> to, double r) {
-  List <double> centre = [(from[0]+to[0]) / 2, (from[1]+to[1])/2)];
-  double fromA = asin((from[1] - centre[1] */
+void plotArc(double theta, List<double> start, List<double> end, 
+     bool cl) {
+  double startA;
+  double endA;
+  double r;
+  double x1 = start[0];
+  double x2 = end[0];
+  double y1 = start[1];
+  double y2 = end[1];
+  if(theta != 2 * PI) {
+    r = sqrt((pow(x1 - x2, 2) + pow(y1 - y2, 2)) / 
+        (2 * (1 - cos(theta))));
+    endA = atan((x2 - x1) / (y1 - y2)) + theta / 2;
+    if(!cl) startA = endA - theta;
+    else startA = endA + theta;
+  } else {
+    r = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2)) / 2;
+    startA = 0;
+    endA = 2 * PI;
+  } 
+  List <double> centre = [x1 - r * cos(startA), y1 - r * sin(startA)]; 
+  canvasElement can = querySelector('#mainCan');
+  var con = can.context2D;
+  double i;
+  if(endA < startA) {
+    con.moveTo(r * cos(endA) + centre[0], -r * sin(endA) - centre[1]);
+    // To avoid the drawing of the base line
+    for(i = endA; i <= startA; i += 0.1) {
+      con..lineTo(r * cos(i) + centre[0], -r * sin(i) - centre[1])
+         ..moveTo(r * cos(i) + centre[0], -r * sin(i) - centre[1]);
+    }
+  } else {
+    con..moveTo(r * cos(startA) + centre[0], - r * sin(i) - centre[1])
+    for(i = startA; i <= endA; i += 0.1) {
+      con..lineTo(r * cos(i) + centre[0], -r * sin(i) - centre[1])
+         ..moveTo(r * cos(i) + centre[0], -r * sin(i) - centre[1]);
+    }
+  }
+  con..closePath()
+    ..stroke();
+}
+
 
 main() {
-  double screenSize = 500;
+/*  double screenSize = 500;
   CanvasElement can = querySelector('#mainCan');
   var context = can.context2D;
   for(double x = 10.5; x < gridSize; x += 10) {
@@ -121,6 +160,7 @@ main() {
          ..stoke();
   xRange = gridSize / 2;
   yRange = gridSize / 2;
-  context.translate(xRange, yRange);
+  context.translate(xRange, yRange);*/
+  plotArc(PI, [0, 0], [0, 4]);
 }
 
