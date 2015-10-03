@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:collection';
+import 'draw.dart';
 
 class LinearExpression { // coef * sub + con
   ComplexNumber coef;
@@ -390,10 +391,11 @@ graph(List <Queue> s) {
     double u = abs2.eqn.con.re;
     double v = abs2.eqn.con.re;
     
-    double x = -k * (u - a * lsq);
-    double y = -k * (v - b * lsq);
-    double r = sqrt(k * (u * u + v * v - lsq * a * a - lsq * b * b) +
-                    k * k * (pow(a*lsq - u, 2) + pow(b * lsq - v, 2)));
+    double x = -k * (u * lsq - a);
+    double y = -k * (v * lsq - b);
+    double r = sqrt(k * (b * b + a * a - lsq * u * u - lsq * v *  v) +
+                    pow(k * (u * lsq - a), 2) + 
+                    pow(k * (v * lsq - b), 2));
     print("Circle centre ($x, $y) radius $r");
   }
 
@@ -412,16 +414,16 @@ graph(List <Queue> s) {
       print("Error: Non-linear in z");
     }
     double m;
+    double x = -f.con.re;
+    double y = -f.con.im;
     if(theta.re != PI / 2 && theta.re != -PI / 2) {
       m = tan(theta.re);
     } else {
-      m = 1 / 0;
+     plotVHalfLine(x, y, x, dircn == PI / 2); 
     }
-    double x = -f.con.re;
-    double y = -f.con.im;
-    print('Half line starting at ($x, $y) with gradient $m');
+    double c = y - m * x;
+    plotHalfLine(x, y, m, c, theta.re < PI / 2 && theta.re > - PI / 2);
   }
-
 
   makeLine(AbsExpression mod1, AbsExpression mod2) {
     LinearExpression f1 = mod1.eqn;
@@ -444,8 +446,7 @@ graph(List <Queue> s) {
       return;
     }
     if(f1.con.im == f2.con.im) {
-      print(
-        "Vertical line x-intercept ${0.5 * (-f1.con.re - f2.con.re)}");
+      plotVLine(0.5 * (-f1.con.re - f2.con.re));
       return;
     }
     double u = f1.con.re;
@@ -454,11 +455,7 @@ graph(List <Queue> s) {
     double b = f2.con.im;
     double m = (u - a) / (b - v);
     double c = 0.5 * ((u * u + v * v - a * a - b * b) / (b - v));
-    if(m == 0) {
-      print('Horizontal line y-intercept $c');
-    } else {
-      print("Line gradient $m, y-intercept $c, x-intercept ${-c/m}");
-    }
+    plotLine(m, c);
   }
 
   makeCircle(var expr, ComplexNumber r) {
@@ -481,7 +478,8 @@ graph(List <Queue> s) {
       print("Error: non-linear in z when plotting circle");
       return;
     }
-    else print("Circle centre (${-f.con.re / f.coef.re}, ${-f.con.im / f.coef.re}) radius : ${(r.re / f.coef.re).abs()}");
+    plotCircle(-f.con.re / f.coef.re, -f.con.im / f.coef.re,
+               (r.re / f.coef.re).abs());
   } 
   makeArc(ArgExpression x, ComplexNumber theta) {
     if(!(x.eqn.denominator.sub is Z) || !(x.eqn.numerator.sub is Z)) {

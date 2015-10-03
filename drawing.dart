@@ -1,13 +1,26 @@
+library draw;
+
 //import 'dart:html';
 import 'dart:math';
 
 double xRange;
 double yRange;
 
+void plotVLine(double xIntercept) {
+  CanvasElement can = querySelector('#mainCan');
+  var con = can.context2D;
+  con..strokeStyle = '#FFF'
+     ..beginPath()
+     ..moveTo(xIntercept, -yRange)
+     ..lineTo(xIntercept, yRange)
+     ..stoke()
+     ..closePath();
+}
+
 void plotLine(double m, double c){
   CanvasElement can = querySelector('#mainCan');
   var con = can.context2D;
-  con..strokeStyle = '#FFF';
+  con..strokeStyle = '#FFF'
      ..beginPath();
 
   List <double> from = [xRange + 1, yRange + 1];
@@ -60,6 +73,19 @@ void plotCircle(double x, double y, double r) {
      ..stroke();
 }
 
+void plotVHalfLine(double x, double y, double xIntercept, bool dircn) {
+  CanvasElement can = querySelector('#mainCan');
+  var con = can.context2D;
+  con..strokeStyle ='#FFF'
+     ..beginPath()
+     ..moveTo(x, -y);
+  if(dircn) con.moveTo(xIntercept, -yRange); // up
+  else con..moveTo(xIntercept,  yRange); // down
+  con..lineTo(xIntercept, 0)
+     ..closePath()
+     ..stoke();
+}
+
 void plotHalfLine(double x, double y, double m, double c, bool dircn) {
   CanvasElement can = querySelector('#mainCan');
   var con = can.context2D;
@@ -67,7 +93,7 @@ void plotHalfLine(double x, double y, double m, double c, bool dircn) {
      ..beginPath()
      ..moveTo(x, -y);
   List <double> to = [xRange + 1, xRange + 1];
-
+  if(m = Inf)
   if(-xRange * m + c <= yRange && -xRange * m + c >= -yRange && 
       !dircn) {
       to[0] = -xRange;
